@@ -1,7 +1,6 @@
 import { useContext, useEffect, useMemo, useState } from 'react'
 import {
   IconAlertTriangle,
-  IconApi,
   IconCircleCheck,
   IconDownload,
   IconExternalLink,
@@ -14,121 +13,131 @@ import {
   IconSearch,
 } from '@tabler/icons-react'
 import { join } from '@tauri-apps/api/path'
-import { readDir, writeFile, exists } from '@tauri-apps/plugin-fs'
+import { readDir } from '@tauri-apps/plugin-fs'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { PreferencesContext } from '../../lib/preferences'
 import { modsStore } from '../../lib/mods-store'
 import { fetchModsList } from '../../lib/mods-list'
-import { loadCurseModInfo, type CurseModInfo } from '../../lib/curse-info'
+import { type CurseModInfo } from '../../lib/curse-info'
 import type { FileInfo, FileInfoSaved } from '../../lib/types'
 import { Button } from '../common/button'
-import { fetchMods } from '../../lib/reload/mod'
+import { downloadMods, fetchMods } from '../../lib/reload/mod'
 
 interface ModEntry {
   fileName: string
   saved: FileInfoSaved | null
 }
 
-type CurseInfoState =
-  | { status: 'loading' }
-  | { status: 'error'; message: string }
-  | { status: 'success'; info: CurseModInfo }
-
 export function ModPage() {
   const preferences = useContext(PreferencesContext)
   const [mcDir, setMcDir] = useState<string | null>(null)
+  const [modsDir, setModsDir] = useState<string | null>(null)
   const [mods, setMods] = useState<ModEntry[]>([])
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [remoteMods, setRemoteMods] = useState<CurseModInfo[] | null>(null)
   const [reloading, setReloading] = useState<'single' | 'all' | null>(null)
   const [reloadStatus, setReloadStatus] = useState<{
     kind: 'success' | 'error'
     message: string
   } | null>(null)
-  const [downloading, setDownloading] = useState<Record<number, boolean>>({})
+
+  function loader() {
+    const state = { active: true }
+
+    return {
+      state,
+      load: async () => {
+        setLoading(true)
+        setError(null)
+
+        try {
+          const [dir, saved] = await Promise.all([
+            preferences.get('mcDir'),
+            modsStore.getAll(),
+          ])
+
+          if (!state.active) return
+
+          setMcDir(dir ?? null)
+
+          if (dir == null) {
+            setMods([])
+            return
+          }
+
+          const savedByName = new Map(
+            saved.map((mod) => [mod.fileName.toLowerCase(), mod]),
+          )
+          const modsDir = await join(dir, 'mods')
+          const entries = await readDir(modsDir)
+          setModsDir(modsDir)
+
+          if (!state.active) return
+
+          const files = entries
+            .filter((entry) => entry.isFile)
+            .map((entry) => entry.name)
+            .sort((a, b) => a.localeCompare(b))
+
+          setMods(
+            files.map((fileName) => ({
+              fileName,
+              saved: savedByName.get(fileName.toLowerCase()) ?? null,
+            })),
+          )
+        } catch (e) {
+          alert(JSON.stringify(e))
+          if (!state.active) return
+
+          setMods([])
+          setError(
+            'No se pudo leer la carpeta de mods. Verifica que exista y que hayas seleccionado la carpeta de Minecraft en Principal.',
+          )
+        } finally {
+          if (state.active) setLoading(false)
+        }
+      },
+    }
+  }
 
   useEffect(() => {
-    let active = true
-
-    async function load() {
-      setLoading(true)
-      setError(null)
-
-      try {
-        const [dir, saved] = await Promise.all([
-          preferences.get('mcDir'),
-          modsStore.getAll(),
-        ])
-
-        if (!active) return
-
-        setMcDir(dir ?? null)
-
-        if (dir == null) {
-          setMods([])
-          return
-        }
-
-        const savedByName = new Map(
-          saved.map((mod) => [mod.fileName.toLowerCase(), mod]),
-        )
-        const modsDir = await join(dir, 'mods')
-        const entries = await readDir(modsDir)
-
-        if (!active) return
-
-        const files = entries
-          .filter((entry) => entry.isFile)
-          .map((entry) => entry.name)
-          .sort((a, b) => a.localeCompare(b))
-
-        setMods(
-          files.map((fileName) => ({
-            fileName,
-            saved: savedByName.get(fileName.toLowerCase()) ?? null,
-          })),
-        )
-      } catch (e) {
-        alert(JSON.stringify(e))
-        if (!active) return
-
-        setMods([])
-        setError(
-          'No se pudo leer la carpeta de mods. Verifica que exista y que hayas seleccionado la carpeta de Minecraft en Principal.',
-        )
-      } finally {
-        if (active) setLoading(false)
-      }
-    }
-
+    const { load, state } = loader()
     load()
 
     return () => {
-      active = false
+      state.active = false
     }
   }, [preferences])
 
   async function reloadList(mode: 'single' | 'all') {
-    if (reloading != null) return
+    if (reloading != null || modsDir == null) return
 
     setReloading(mode)
     setReloadStatus(null)
 
     try {
       const list = await fetchModsList()
+      alert('Se obtuvieron los mods, en total ' + list.length)
+      const mods = await fetchMods()
+      alert('Se cargaron los mods en memoria')
 
-      setRemoteMods(await fetchMods())
+      let state = { active: false }
+      await downloadMods(mode === 'all', modsDir, mods, () => {
+        if (state.active) state.active = false
+        const s = loader()
+        s.load()
+        state = s.state
+      })
 
       setReloadStatus({
         kind: 'success',
         message: `Lista descargada: ${list.length} mod${list.length === 1 ? '' : 's'}.`,
       })
-    } catch {
+    } catch (e) {
       setReloadStatus({
         kind: 'error',
-        message: 'No se pudo descargar la lista de mods desde GitHub.',
+        message: (e as Error).message,
       })
     } finally {
       setReloading(null)
@@ -191,35 +200,6 @@ export function ModPage() {
             </p>
           )}
         </div>
-
-        {remoteMods != null && (
-          <div className='rounded-xl border border-neutral-700 bg-neutral-800/40 p-3'>
-            <p className='text-xs font-medium text-neutral-300'>
-              Lista remota · {remoteMods.length} mod
-              {remoteMods.length === 1 ? '' : 's'}
-            </p>
-            <ul className='mt-2 flex flex-col gap-2'>
-              {remoteMods.map((info) => {
-                return (
-                  <li
-                    key={info.modId}
-                    className='rounded-lg border border-neutral-700 bg-neutral-900/40 p-3'>
-                    <div className='flex flex-wrap items-center justify-between gap-2'>
-                      <span className='font-mono text-[11px] text-neutral-300'>
-                        modId {info.modId} · fileId {info.fileId}
-                      </span>
-                    </div>
-
-                    <CurseInfoPreview
-                      info={info}
-                      //onDownload={downloadModIfMissing}
-                    />
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        )}
 
         <div className='flex flex-wrap items-center justify-between gap-3'>
           <div className='relative w-full sm:max-w-sm'>
@@ -294,92 +274,6 @@ function EmptyState({ configured }: { configured: boolean }) {
           ? 'Cuando agregues archivos a la carpeta mods aparecerán aquí.'
           : 'Selecciona tu carpeta de Minecraft en Principal para empezar.'}
       </p>
-    </div>
-  )
-}
-
-function CurseInfoPreview({
-  info,
-  onDownload,
-}: {
-  info: CurseModInfo
-  onDownload?: (info: FileInfo) => Promise<void>
-}) {
-  return (
-    <div className='mt-3 flex flex-col gap-2 text-xs'>
-      <div className='flex min-w-0 items-center gap-2'>
-        {info.logo ? (
-          <img
-            src={info.logo}
-            alt={info.title}
-            className='h-10 w-10 shrink-0 rounded-lg object-cover'
-          />
-        ) : (
-          <span className='flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-neutral-700/50 text-neutral-400'>
-            <IconPuzzle size={20} />
-          </span>
-        )}
-        <div className='min-w-0'>
-          <p
-            className='truncate font-medium text-neutral-100'
-            title={info.title}>
-            {info.title}
-          </p>
-          <p
-            className='truncate font-mono text-[11px] text-neutral-400'
-            title={info.fileName}>
-            {info.fileName}
-          </p>
-        </div>
-      </div>
-
-      <p className='truncate text-neutral-400' title={info.pageUrl}>
-        Página:{' '}
-        <span className='font-mono text-neutral-300'>
-          {info.pageUrl || '—'}
-        </span>
-      </p>
-      <p className='truncate text-neutral-400' title={info.downloadUrl}>
-        Descarga:{' '}
-        <span className='font-mono text-neutral-300'>
-          {info.downloadUrl || '—'}
-        </span>
-      </p>
-
-      <div className='flex flex-wrap gap-2'>
-        {info.pageUrl && (
-          <Button
-            variant='secondary'
-            className='flex items-center gap-1.5 bg-neutral-700 px-2.5 py-1 text-xs text-neutral-50 hover:bg-neutral-600'
-            onClick={() => openCurseForge(info.pageUrl)}>
-            <IconExternalLink size={14} /> Ir a CurseForge
-          </Button>
-        )}
-        {info.downloadUrl && (
-          <Button
-            variant='secondary'
-            className='flex items-center gap-1.5 bg-neutral-700 px-2.5 py-1 text-xs text-neutral-50 hover:bg-neutral-600'
-            onClick={() => openCurseForge(info.downloadUrl)}>
-            <IconDownload size={14} /> Abrir descarga
-          </Button>
-        )}
-        <Button
-          variant='secondary'
-          className='flex items-center gap-1.5 bg-emerald-600/80 px-2.5 py-1 text-xs text-neutral-50 hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60'
-          disabled={!onDownload}
-          onClick={() => {
-            if (!onDownload) return
-            const fileInfo: FileInfo = {
-              kind: 'curseforge',
-              modId: info.modId,
-              fileId: info.fileId,
-            }
-            onDownload(fileInfo).catch(() => {})
-          }}>
-          <IconDownload size={14} />
-          Descargar y guardar
-        </Button>
-      </div>
     </div>
   )
 }

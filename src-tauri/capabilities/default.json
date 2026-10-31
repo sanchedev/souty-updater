@@ -12,6 +12,11 @@
     "dialog:default",
     "notifications:default",
     "store:default",
+    "fs:allow-read-dir",
+    "fs:allow-read-file",
+    "fs:allow-write-file",
+    "fs:allow-create",
+    "fs:allow-remove",
     {
       "identifier": "fs:scope",
       "allow": [
