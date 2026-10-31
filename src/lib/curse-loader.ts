@@ -1,12 +1,12 @@
 import { CurseFileResponse } from './curse-file-type'
-import type { FileInfoCurseForge } from './types'
+import type { FileInfo } from './types'
 
 interface LoadCurseFileResult {
   cancel(): void
   load(): Promise<CurseFileResponse>
 }
 
-function loadCurseFile(info: FileInfoCurseForge): LoadCurseFileResult {
+export function loadCurseFile(info: FileInfo): LoadCurseFileResult {
   const abort = new AbortController()
 
   return {
@@ -22,6 +22,13 @@ function loadCurseFile(info: FileInfoCurseForge): LoadCurseFileResult {
           signal: abort.signal,
         },
       )
+
+      if (!res.ok) {
+        throw new Error(
+          `No se pudo cargar el archivo ${info.fileId} (${res.status}).`,
+        )
+      }
+
       return await res.json()
     },
   }

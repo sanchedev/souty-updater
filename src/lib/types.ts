@@ -1,13 +1,14 @@
-export type FileInfo = FileInfoCurseForge | FileInfoRawFile
-
-export interface FileInfoCurseForge {
+export interface FileInfo {
   kind: 'curseforge'
   modId: number
   fileId: number
 }
 
-export interface FileInfoRawFile {
-  kind: 'raw'
+export interface FileInfoSaved {
   title: string
-  url: string
+  logo: string
+  fileName: string
+  modId: number
+  fileId: number
+  curseUrl: string
 }

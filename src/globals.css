@@ -1,9 +1,9 @@
 @import 'tailwindcss';
 
 body {
-  @apply bg-neutral-800 text-neutral-50 h-screen;
+  @apply bg-neutral-800 text-neutral-50 h-screen overflow-hidden;
 }
 
 #root {
-  @apply h-screen;
+  @apply h-screen overflow-hidden;
 }

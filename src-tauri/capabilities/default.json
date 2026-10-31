@@ -11,6 +11,14 @@
     "fs:default",
     "dialog:default",
     "notifications:default",
-    "store:default"
+    "store:default",
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        "$HOME/**",
+        "$APPDATA/**",
+        "C:\\**"
+      ]
+    }
   ]
 }

@@ -11,7 +11,7 @@ function App() {
   return (
     <div className='w-full h-full grid grid-cols-[auto_1fr]'>
       <SideBar currentIndex={index} goTo={(index) => setIndex(index)} />
-      <div className='flex flex-col h-full'>
+      <div className='flex flex-col h-full min-h-0 min-w-0'>
         <Header index={index} />
         {<CurrentPage key={`page-${index}`} />}
       </div>

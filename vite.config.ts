@@ -10,6 +10,9 @@ const host = process.env.TAURI_DEV_HOST
 export default defineConfig(() => ({
   plugins: [react(), tailwindcss()],
 
+  // La API key de CurseForge se usa desde el frontend, por eso debe exponerse.
+  envPrefix: ['VITE_', 'CURSEFORGE_'],
+
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
   // 1. prevent Vite from obscuring rust errors
