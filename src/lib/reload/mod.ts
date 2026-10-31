@@ -62,7 +62,7 @@ export async function downloadMods(
       onProgress(completedTasks, totalTasks, `Descargando ${mod.fileName}...`)
     }
 
-    await downloadModIfMissing(mod, modsDir)
+    await downloadMod(mod, modsDir)
     await saveModInfo(mod)
     completedTasks++
   }
@@ -75,20 +75,28 @@ export async function downloadMods(
     [...missing].flatMap(async (modKey) => {
       const mod = modMap.get(modKey)
       if (mod == null) return []
-      await downloadModIfMissing(mod, modsDir)
+      await downloadMod(mod, modsDir)
       await saveModInfo(mod)
     }),
   )
 }
 
 import { invoke } from '@tauri-apps/api/core'
+import { confirm } from '@tauri-apps/plugin-dialog'
+import { openUrl } from '@tauri-apps/plugin-opener'
 
-async function downloadModIfMissing(info: CurseModInfo, modsDir: string) {
+export async function downloadMod(info: CurseModInfo, modsDir: string) {
   const { downloadUrl, fileName } = info
   const filePath = await join(modsDir, fileName)
 
   if (!downloadUrl) {
-    alert('No hay URL de descarga disponible.')
+    if (
+      !(await confirm(
+        'No hay URL de descarga disponible para este mod. Al hacerlo manual abriremos la página de descarga del archivo y manualmente tendrá que moverlo a la carpeta de mods asignada. ¿Desea continuar manualmente?',
+      ))
+    )
+      return
+    await openUrl(info.pageUrl + '/files/' + info.fileId)
     return
   }
 
@@ -102,7 +110,8 @@ async function downloadModIfMissing(info: CurseModInfo, modsDir: string) {
     throw new Error(`No se pudo descargar el archivo: ${error}`)
   }
 }
-async function saveModInfo(info: CurseModInfo) {
+
+export async function saveModInfo(info: CurseModInfo) {
   const { title, logo, pageUrl, fileName } = info
 
   await modsStore.add({
@@ -111,6 +120,7 @@ async function saveModInfo(info: CurseModInfo) {
     fileName,
     modId: info.modId,
     fileId: info.fileId,
-    curseUrl: pageUrl,
+    pageUrl,
+    downloadUrl: info.downloadUrl,
   })
 }

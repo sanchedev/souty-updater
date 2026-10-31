@@ -15,8 +15,8 @@ import { open } from '@tauri-apps/plugin-dialog'
 import { revealItemInDir } from '@tauri-apps/plugin-opener'
 import clsx from 'clsx'
 import pkg from '../../../package.json'
-import { PreferencesContext } from '../../lib/preferences'
 import { Button } from '../common/button'
+import { usePreferencesStore } from '../../stores/preferences'
 
 const steps = [
   {
@@ -37,31 +37,13 @@ const steps = [
 ]
 
 export function HomePage() {
-  const preferences = useContext(PreferencesContext)
-  const [mcDir, setMcDir] = useState<string | null>(null)
+  const mcDir = usePreferencesStore((s) => s.mcDir)
+  const setMcDir = usePreferencesStore((s) => s.setMcDir)
   const [picking, setPicking] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    let active = true
-
-    preferences
-      .get('mcDir')
-      .then((dir) => {
-        if (active) setMcDir(dir ?? null)
-      })
-      .catch(() => {
-        if (active) setMcDir(null)
-      })
-
-    return () => {
-      active = false
-    }
-  }, [preferences])
-
   const configured = mcDir != null
-  const modsDir =
-    mcDir == null ? null : `${mcDir.replace(/[\\/]+$/, '')}/mods`
+  const modsDir = mcDir == null ? null : `${mcDir.replace(/[\\/]+$/, '')}/mods`
 
   async function pickDirectory() {
     if (picking) return
@@ -80,7 +62,6 @@ export function HomePage() {
 
       if (dir == null) return
 
-      await preferences.set('mcDir', dir)
       setMcDir(dir)
     } catch {
       setError('No se pudo abrir el selector de carpetas.')
@@ -105,13 +86,10 @@ export function HomePage() {
     <main className='flex-1 min-h-0 overflow-y-auto px-4 pb-8'>
       <div className='mx-auto flex w-full max-w-3xl min-w-0 flex-col gap-6'>
         <section
-          className={clsx(
-            'flex items-start gap-4 rounded-2xl border p-5',
-            {
-              'border-emerald-500/30 bg-emerald-500/5': configured,
-              'border-amber-400/30 bg-amber-400/5': !configured,
-            },
-          )}>
+          className={clsx('flex items-start gap-4 rounded-2xl border p-5', {
+            'border-emerald-500/30 bg-emerald-500/5': configured,
+            'border-amber-400/30 bg-amber-400/5': !configured,
+          })}>
           <span
             className={clsx('rounded-full p-2', {
               'bg-emerald-500/15 text-emerald-300': configured,
@@ -184,9 +162,7 @@ export function HomePage() {
               </p>
             )}
 
-            {error != null && (
-              <p className='text-xs text-red-400'>{error}</p>
-            )}
+            {error != null && <p className='text-xs text-red-400'>{error}</p>}
           </div>
         </section>
 

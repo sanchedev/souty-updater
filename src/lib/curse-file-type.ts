@@ -7,7 +7,7 @@ export interface CurseFileData {
   dependencies: any[]
   displayName: string
   downloadCount: number
-  downloadUrl: string
+  downloadUrl: string | null
   fileDate: Date
   fileFingerprint: number
   fileLength: number

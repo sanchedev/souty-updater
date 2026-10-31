@@ -1,9 +1,18 @@
 @import 'tailwindcss';
 
 body {
-  @apply bg-neutral-800 text-neutral-50 h-screen overflow-hidden;
+  @apply bg-neutral-800 text-neutral-50 h-screen overflow-hidden select-none;
 }
 
 #root {
   @apply h-screen overflow-hidden;
+}
+
+@keyframes loading {
+  from {
+    left: -100%;
+  }
+  to {
+    left: 100%;
+  }
 }

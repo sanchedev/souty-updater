@@ -82,6 +82,22 @@ class ModsStore {
   async #save(mods: FileInfoSaved[]) {
     await this.#store.set(MODS_KEY, mods)
     await this.#store.save()
+    this.#emit(mods)
+  }
+
+  #listeners = new Set<(mods: FileInfoSaved[]) => void>()
+
+  on(cb: (mods: FileInfoSaved[]) => void) {
+    this.#listeners.add(cb)
+    return () => this.off(cb)
+  }
+  off(cb: (mods: FileInfoSaved[]) => void) {
+    this.#listeners.delete(cb)
+  }
+  #emit(mods: FileInfoSaved[]) {
+    for (const cb of [...this.#listeners]) {
+      cb(mods)
+    }
   }
 
   /**
