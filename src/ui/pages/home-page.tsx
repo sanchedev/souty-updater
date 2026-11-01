@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   IconAlertTriangle,
   IconCircleCheck,
@@ -16,6 +16,11 @@ import { revealItemInDir } from '@tauri-apps/plugin-opener'
 import clsx from 'clsx'
 import pkg from '../../../package.json'
 import { Button } from '../common/button'
+import { Card, Section } from '../common/card'
+import { MicroLabel } from '../common/micro-label'
+import { Slot } from '../common/slot'
+import { packsDir } from '../../lib/content-kinds'
+import { toast } from '../../stores/toasts'
 import { usePreferencesStore } from '../../stores/preferences'
 
 const steps = [
@@ -40,16 +45,14 @@ export function HomePage() {
   const mcDir = usePreferencesStore((s) => s.mcDir)
   const setMcDir = usePreferencesStore((s) => s.setMcDir)
   const [picking, setPicking] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   const configured = mcDir != null
-  const modsDir = mcDir == null ? null : `${mcDir.replace(/[\\/]+$/, '')}/mods`
+  const modsDir = mcDir == null ? null : packsDir(mcDir, 'mod')
 
   async function pickDirectory() {
     if (picking) return
 
     setPicking(true)
-    setError(null)
 
     try {
       const dir = await open({
@@ -62,9 +65,10 @@ export function HomePage() {
 
       if (dir == null) return
 
-      setMcDir(dir)
+      await setMcDir(dir)
+      toast.success('Carpeta de Minecraft actualizada.')
     } catch {
-      setError('No se pudo abrir el selector de carpetas.')
+      toast.error('No se pudo abrir el selector de carpetas.')
     } finally {
       setPicking(false)
     }
@@ -73,36 +77,39 @@ export function HomePage() {
   async function revealModsFolder() {
     if (modsDir == null) return
 
-    setError(null)
-
     try {
       await revealItemInDir(modsDir)
     } catch {
-      setError('No se pudo abrir la carpeta. Verifica que exista.')
+      toast.error('No se pudo abrir la carpeta. Verifica que exista.')
     }
   }
 
   return (
-    <main className='flex-1 min-h-0 overflow-y-auto px-4 pb-8'>
-      <div className='mx-auto flex w-full max-w-3xl min-w-0 flex-col gap-6'>
-        <section
-          className={clsx('flex items-start gap-4 rounded-2xl border p-5', {
-            'border-emerald-500/30 bg-emerald-500/5': configured,
-            'border-amber-400/30 bg-amber-400/5': !configured,
+    <main className='min-h-0 flex-1 overflow-y-auto px-4 pb-8'>
+      <div className='mx-auto flex w-full max-w-3xl min-w-0 flex-col gap-5 pt-5'>
+        <Card
+          className={clsx('flex items-start gap-4 p-5', {
+            'border-emerald-500/30': configured,
+            'border-amber-400/30': !configured,
           })}>
-          <span
-            className={clsx('rounded-full p-2', {
-              'bg-emerald-500/15 text-emerald-300': configured,
-              'bg-amber-400/15 text-amber-300': !configured,
+          <Slot
+            className={clsx({
+              'bg-emerald-500/10 text-emerald-300': configured,
+              'bg-amber-400/10 text-amber-300': !configured,
             })}>
             {configured ? (
-              <IconCircleCheck size={24} />
+              <IconCircleCheck size={22} />
             ) : (
-              <IconAlertTriangle size={24} />
+              <IconAlertTriangle size={22} />
             )}
-          </span>
-          <div>
-            <h2 className='font-semibold'>
+          </Slot>
+          <div className='min-w-0'>
+            <div className='flex items-center gap-2'>
+              <MicroLabel>
+                {configured ? 'Estado: listo' : 'Estado: pendiente'}
+              </MicroLabel>
+            </div>
+            <h2 className='mt-1 font-bold'>
               {configured
                 ? 'Carpeta de Minecraft configurada'
                 : 'Falta configurar tu carpeta de Minecraft'}
@@ -113,33 +120,30 @@ export function HomePage() {
                 : 'Selecciona la carpeta .minecraft para que podamos encontrar y actualizar tus mods.'}
             </p>
           </div>
-        </section>
+        </Card>
 
-        <section className='rounded-2xl border border-neutral-700 bg-neutral-800/50 p-5'>
-          <div className='flex items-center gap-2'>
-            <IconFolder className='text-amber-300' />
-            <h2 className='font-semibold'>Preferencias</h2>
-          </div>
-
-          <div className='mt-4 flex flex-col gap-3'>
+        <Section
+          icon={IconFolder}
+          title='Preferencias'
+          description='Normalmente la carpeta se llama .minecraft.'>
+          <div className='flex flex-col gap-3'>
             <div className='flex flex-wrap items-center justify-between gap-3'>
-              <div>
-                <p className='text-sm font-medium'>Carpeta de Minecraft</p>
-                <p className='text-xs text-neutral-400'>
-                  Normalmente se llama .minecraft.
-                </p>
-              </div>
+              <p className='text-sm font-medium'>Carpeta de Minecraft</p>
               <div className='flex gap-2'>
                 {configured && (
                   <Button
                     variant='secondary'
-                    className='bg-neutral-700 hover:bg-neutral-600 text-neutral-50'
+                    size='sm'
+                    icon={<IconExternalLink size={14} />}
                     onClick={revealModsFolder}>
-                    <IconExternalLink className='inline' /> Abrir mods
+                    Abrir mods
                   </Button>
                 )}
-                <Button disabled={picking} onClick={pickDirectory}>
-                  <IconFolder className='inline' />{' '}
+                <Button
+                  size='sm'
+                  disabled={picking}
+                  icon={<IconFolder size={14} />}
+                  onClick={pickDirectory}>
                   {picking
                     ? 'Abriendo…'
                     : configured
@@ -150,7 +154,7 @@ export function HomePage() {
             </div>
 
             <div
-              className='truncate rounded-lg border border-neutral-700 bg-neutral-900/50 px-3 py-2 font-mono text-xs'
+              className='bevel-inset truncate rounded-xs bg-neutral-900 px-3 py-2 font-mono text-xs'
               title={mcDir ?? 'Sin configurar'}>
               {mcDir ?? 'Sin configurar'}
             </div>
@@ -161,18 +165,14 @@ export function HomePage() {
                 <span className='font-mono text-neutral-300'>{modsDir}</span>
               </p>
             )}
-
-            {error != null && <p className='text-xs text-red-400'>{error}</p>}
           </div>
-        </section>
+        </Section>
 
-        <section className='rounded-2xl border border-neutral-700 bg-neutral-800/50 p-5'>
-          <div className='flex items-center gap-2'>
-            <IconInfoCircle className='text-amber-300' />
-            <h2 className='font-semibold'>Información</h2>
-          </div>
-
-          <dl className='mt-4 grid gap-3 sm:grid-cols-3'>
+        <Section
+          icon={IconInfoCircle}
+          title='Información'
+          description='Detalles de la instalación actual.'>
+          <dl className='grid gap-3 sm:grid-cols-3'>
             <InfoTile
               icon={IconFolder}
               label='Carpeta de mods'
@@ -182,31 +182,31 @@ export function HomePage() {
             <InfoTile icon={IconCloud} label='Fuente' value='CurseForge' />
             <InfoTile icon={IconTag} label='Versión' value={pkg.version} />
           </dl>
-        </section>
+        </Section>
 
-        <section className='rounded-2xl border border-neutral-700 bg-neutral-800/50 p-5'>
-          <div className='flex items-center gap-2'>
-            <IconRefresh className='text-amber-300' />
-            <h2 className='font-semibold'>Cómo funciona</h2>
-          </div>
-
-          <ol className='mt-4 grid gap-3 sm:grid-cols-3'>
+        <Section
+          icon={IconRefresh}
+          title='Cómo funciona'
+          description='Tres pasos y tu carpeta queda al día.'>
+          <ol className='grid gap-3 sm:grid-cols-3'>
             {steps.map(({ icon: StepIcon, title, description }, index) => (
               <li
                 key={title}
-                className='rounded-lg border border-neutral-700 bg-neutral-900/40 p-3'>
-                <div className='flex items-center gap-2 text-xs font-medium text-amber-300'>
-                  <span className='flex h-5 w-5 items-center justify-center rounded-full bg-amber-400/15'>
-                    {index + 1}
-                  </span>
-                  <StepIcon size={16} />
+                className='bevel-inset rounded-sm border border-edge bg-neutral-900/40 p-3'>
+                <div className='flex items-center gap-2 text-xs font-semibold'>
+                  <Slot size={20} className='bg-brand-400/15 text-brand-300'>
+                    <span className='font-mono text-[10px] font-bold'>
+                      {index + 1}
+                    </span>
+                  </Slot>
+                  <StepIcon size={14} className='text-brand-300' />
                   {title}
                 </div>
                 <p className='mt-2 text-xs text-neutral-400'>{description}</p>
               </li>
             ))}
           </ol>
-        </section>
+        </Section>
       </div>
     </main>
   )
@@ -221,10 +221,10 @@ interface InfoTileProps {
 
 function InfoTile({ icon: TileIcon, label, value, mono }: InfoTileProps) {
   return (
-    <div className='min-w-0 rounded-lg border border-neutral-700 bg-neutral-900/40 p-3'>
-      <dt className='flex items-center gap-1.5 text-xs text-neutral-400'>
-        <TileIcon size={14} />
-        {label}
+    <div className='min-w-0 rounded-sm border border-edge bg-neutral-900/40 p-3'>
+      <dt className='flex items-center gap-1.5 text-neutral-400'>
+        <TileIcon size={12} className='shrink-0' />
+        <MicroLabel>{label}</MicroLabel>
       </dt>
       <dd
         className={clsx('mt-1 truncate text-sm', {

@@ -1,5 +1,5 @@
-import { IconHome, IconPuzzle } from '@tabler/icons-react'
-import { ModPage } from '../ui/pages/mod-page'
+import { IconBox, IconHome } from '@tabler/icons-react'
+import { ContentPage } from '../ui/pages/content-page'
 import { HomePage } from '../ui/pages/home-page'
 
 export const Pages = [
@@ -9,8 +9,8 @@ export const Pages = [
     page: HomePage,
   },
   {
-    title: 'Mods',
-    icon: IconPuzzle,
-    page: ModPage,
+    title: 'Contenido',
+    icon: IconBox,
+    page: ContentPage,
   },
 ]

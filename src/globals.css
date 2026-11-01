@@ -1,11 +1,36 @@
 @import 'tailwindcss';
 
-body {
-  @apply bg-neutral-800 text-neutral-50 h-screen overflow-hidden select-none;
-}
+@theme {
+  /* Superficies */
+  --color-app: #121214;
+  --color-panel: #1a1a1d;
+  --color-panel-raise: #232327;
+  --color-edge: #2c2c31;
+  --color-edge-strong: #3d3d45;
 
-#root {
-  @apply h-screen overflow-hidden;
+  /* Marca (ámbar) */
+  --color-brand-300: #fcd34d;
+  --color-brand-400: #fbbf24;
+  --color-brand-500: #f59e0b;
+  --color-brand-600: #d97706;
+
+  /* Tipografía */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace;
+  --font-pixel: 'Silkscreen', 'JetBrains Mono', monospace;
+
+  /* Radios cuadrados (estilo Minecraft) */
+  --radius-xs: 1px;
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 5px;
+  --radius-2xl: 6px;
+
+  /* Animaciones */
+  --animate-loading: loading 2s ease-in-out infinite alternate;
+  --animate-fade-in: fade-in 0.25s ease-out;
+  --animate-slide-in: slide-in 0.25s ease-out;
 }
 
 @keyframes loading {
@@ -14,5 +39,100 @@ body {
   }
   to {
     left: 100%;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Bisel estilo Minecraft: borde superior claro e inferior oscuro */
+@utility bevel {
+  box-shadow:
+    inset 1px 1px 0 0 rgb(255 255 255 / 0.06),
+    inset -1px -1px 0 0 rgb(0 0 0 / 0.45);
+}
+
+/* Bisel invertido: ranura de inventario */
+@utility bevel-inset {
+  box-shadow:
+    inset 1px 1px 0 0 rgb(0 0 0 / 0.55),
+    inset -1px -1px 0 0 rgb(255 255 255 / 0.05);
+}
+
+/* Rejilla tenue de bloques */
+@utility pixel-grid {
+  background-image:
+    linear-gradient(rgb(255 255 255 / 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.02) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+body {
+  @apply h-screen w-screen overflow-hidden bg-app font-sans text-neutral-50 antialiased select-none;
+}
+
+#root {
+  @apply h-screen overflow-hidden;
+}
+
+::selection {
+  @apply bg-brand-400/30 text-neutral-50;
+}
+
+:focus-visible {
+  @apply outline-2 outline-offset-2 outline-brand-400/80;
+}
+
+/* Scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-edge-strong) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-edge-strong);
+  background-clip: content-box;
+  border: 3px solid transparent;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4d4d57;
+  background-clip: content-box;
+  border: 3px solid transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

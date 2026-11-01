@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { usePreferencesStore } from '../../stores/preferences'
+import { Splash } from '../splash'
 
 export function PreferencesProvider(props: React.PropsWithChildren) {
   const loadPrefs = usePreferencesStore((s) => s.load)
@@ -9,7 +10,7 @@ export function PreferencesProvider(props: React.PropsWithChildren) {
     loadPrefs()
   }, [])
 
-  if (loading) return null
+  if (loading) return <Splash />
 
   return props.children
 }

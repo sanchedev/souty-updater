@@ -1,8 +1,14 @@
+import { IconQuestionMark } from '@tabler/icons-react'
+import { EmptyState } from '../common/empty-state'
+
 export function NotFoundPage() {
   return (
-    <div className='w-full h-full justify-center items-center'>
-      <h2>Página No Encontrada</h2>
-      <p>Abre otras opciones o reporta esto como un error</p>
-    </div>
+    <main className='flex min-h-0 flex-1 items-center justify-center p-4'>
+      <EmptyState
+        icon={IconQuestionMark}
+        title='Página no encontrada'
+        description='Elige una opción del menú lateral o reporta esto como un error.'
+      />
+    </main>
   )
 }

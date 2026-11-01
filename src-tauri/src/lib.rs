@@ -1,8 +1,9 @@
 use std::fs::File;
 use std::io::Write;
+use std::path::Path;
 
 #[tauri::command]
-async fn download_mod_file(url: String, file_path: String, api_key: String) -> Result<(), String> {
+async fn download_file(url: String, file_path: String, api_key: String) -> Result<(), String> {
     let client = reqwest::Client::new();
     let response = client
         .get(&url)
@@ -17,7 +18,12 @@ async fn download_mod_file(url: String, file_path: String, api_key: String) -> R
 
     let bytes = response.bytes().await.map_err(|e| e.to_string())?;
 
-    let mut file = File::create(file_path).map_err(|e| e.to_string())?;
+    // La carpeta de destino puede no existir todavía (primer uso).
+    if let Some(parent) = Path::new(&file_path).parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+
+    let mut file = File::create(&file_path).map_err(|e| e.to_string())?;
     file.write_all(&bytes).map_err(|e| e.to_string())?;
 
     Ok(())
@@ -31,7 +37,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![download_mod_file])
+        .invoke_handler(tauri::generate_handler![download_file])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
