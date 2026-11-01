@@ -49,7 +49,7 @@ export function DownloableItem({
     onLoading?.(true)
 
     try {
-      await downloadMod(item, modsDir)
+      await downloadMod(item, modsDir, true)
       onChange(item.fileName)
     } catch (e) {
       onError?.(
