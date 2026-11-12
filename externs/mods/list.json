@@ -243,5 +243,40 @@
     "kind": "curseforge",
     "modId": 1314084,
     "fileId": 8123167
+  },
+  {
+    "kind": "curseforge",
+    "modId": 688768,
+    "fileId": 8241347
+  },
+  {
+    "kind": "curseforge",
+    "modId": 1216624,
+    "fileId": 8900055
+  },
+  {
+    "kind": "curseforge",
+    "modId": 551586,
+    "fileId": 8931182
+  },
+  {
+    "kind": "curseforge",
+    "modId": 1001614,
+    "fileId": 8345326
+  },
+  {
+    "kind": "curseforge",
+    "modId": 1194714,
+    "fileId": 8824651
+  },
+  {
+    "kind": "curseforge",
+    "modId": 1677981,
+    "fileId": 9538107
+  },
+  {
+    "kind": "curseforge",
+    "modId": 1110803,
+    "fileId": 9566342
   }
 ]
