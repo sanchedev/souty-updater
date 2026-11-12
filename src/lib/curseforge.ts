@@ -6,8 +6,14 @@ import { isFileInfo, type FileInfo, type PackInfo } from './content-types'
 const API = 'https://api.curseforge.com/v1'
 const API_KEY = import.meta.env.CURSEFORGE_API_KEY
 
-const LIST_BASE_URL =
+export const LIST_BASE_URL =
   'https://raw.githubusercontent.com/sanchedev/souty-updater/refs/heads/master/'
+
+/** Valores esperados para los avisos de compatibilidad (definidos en Ajustes). */
+export interface CompatTarget {
+  version: string
+  loader: string
+}
 
 /** Listado publicado de un tipo de contenido (`externs/<tipo>/list.json`). */
 export async function fetchPacksList(
@@ -65,6 +71,7 @@ async function curseGet<T>(path: string, signal?: AbortSignal): Promise<T> {
 export async function fetchPackInfo(
   kind: ContentKind,
   entry: FileInfo,
+  target: CompatTarget,
 ): Promise<{ pack: PackInfo; warnings: string[] }> {
   const [mod, file] = await Promise.all([
     curseGet<CurseResponse<CurseModData>>(`/mods/${entry.modId}`),
@@ -82,22 +89,23 @@ export async function fetchPackInfo(
     pageUrl: mod.data.links?.websiteUrl ?? '',
     fileName: file.data.fileName,
     downloadUrl: file.data.downloadUrl,
+    gameVersions: file.data.gameVersions,
   }
 
-  return { pack, warnings: checkCompatibility(pack, file.data.gameVersions) }
+  return { pack, warnings: checkCompatibility(pack, target) }
 }
 
 /**
  * Descarga el listado completo de un tipo. Los elementos que fallen no
  * detienen la operación: terminan como avisos.
  */
-export async function fetchPacks(kind: ContentKind): Promise<{
-  packs: PackInfo[]
-  warnings: string[]
-}> {
+export async function fetchPacks(
+  kind: ContentKind,
+  target: CompatTarget,
+): Promise<{ packs: PackInfo[]; warnings: string[] }> {
   const entries = await fetchPacksList(kind)
   const results = await Promise.allSettled(
-    entries.map((entry) => fetchPackInfo(kind, entry)),
+    entries.map((entry) => fetchPackInfo(kind, entry, target)),
   )
 
   const packs: PackInfo[] = []
@@ -118,6 +126,38 @@ export async function fetchPacks(kind: ContentKind): Promise<{
   return { packs, warnings }
 }
 
+/**
+ * Revisa un elemento guardado contra el target actual, usando sus
+ * `gameVersions` persistidos (sin llamadas a la API).
+ */
+export function checkCompatibility(
+  pack: PackInfo,
+  target: CompatTarget,
+): string[] {
+  const versions = pack.gameVersions ?? []
+  // Entradas guardadas antes de persistir versiones: no se puede revisar.
+  if (versions.length === 0) return []
+
+  const { checks } = CONTENT_KINDS[pack.content]
+  const warnings: string[] = []
+
+  if (checks.version && !versions.includes(target.version)) {
+    warnings.push(`${pack.fileName}: no es compatible con la ${target.version}.`)
+  }
+  if (checks.loader && !versions.includes(target.loader)) {
+    warnings.push(`${pack.fileName}: no es compatible con ${target.loader}.`)
+  }
+  if (
+    checks.side &&
+    versions.includes('Server') &&
+    !versions.includes('Client')
+  ) {
+    warnings.push(`${pack.fileName}: está enfocado únicamente para servidores.`)
+  }
+
+  return warnings
+}
+
 /** Descarga un archivo a la carpeta indicada (la crea si no existe). */
 export async function downloadPack(pack: PackInfo, dir: string): Promise<void> {
   if (pack.downloadUrl == null) {
@@ -134,27 +174,4 @@ export async function downloadPack(pack: PackInfo, dir: string): Promise<void> {
 /** Abre la página del archivo en el navegador (descarga manual). */
 export function packDownloadPage(pack: PackInfo): string {
   return `${pack.pageUrl}/files/${pack.fileId}`
-}
-
-function checkCompatibility(pack: PackInfo, gameVersions: string[]): string[] {
-  const { expect } = CONTENT_KINDS[pack.content]
-  const warnings: string[] = []
-
-  if (expect.gameVersion != null && !gameVersions.includes(expect.gameVersion)) {
-    warnings.push(
-      `${pack.fileName}: no es compatible con la ${expect.gameVersion}.`,
-    )
-  }
-  if (expect.loader != null && !gameVersions.includes(expect.loader)) {
-    warnings.push(`${pack.fileName}: no es compatible con ${expect.loader}.`)
-  }
-  if (
-    expect.side != null &&
-    gameVersions.includes('Server') &&
-    !gameVersions.includes(expect.side)
-  ) {
-    warnings.push(`${pack.fileName}: está enfocado únicamente para servidores.`)
-  }
-
-  return warnings
 }

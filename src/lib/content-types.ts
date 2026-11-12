@@ -20,6 +20,8 @@ export interface PackInfo {
   pageUrl: string
   fileName: string
   downloadUrl: string | null
+  /** Versiones que declara el archivo en CurseForge (para revisar compatibilidad localmente). */
+  gameVersions: string[]
 }
 
 /** Estado de un elemento respecto a la carpeta local. */

@@ -17,12 +17,14 @@ export interface ContentKindMeta {
   classId: number
   /** Ruta del listado publicado, relativa a la raíz del repositorio. */
   listPath: string
-  expect: {
-    gameVersion?: string
-    /** Loader que debe declarar el archivo (solo aplica a mods). */
-    loader?: string
-    /** Lado esperado del archivo, ej. 'Client' (solo aplica a mods). */
-    side?: string
+  /** Qué valida la compatibilidad de este tipo (los valores vienen de Ajustes). */
+  checks: {
+    /** Exigir que el archivo declare la versión objetivo. */
+    version: boolean
+    /** Exigir que declare el loader objetivo (solo aplica a mods). */
+    loader: boolean
+    /** Avisar si el archivo está enfocado solo a servidores (solo mods). */
+    side: boolean
   }
 }
 
@@ -34,7 +36,7 @@ export const CONTENT_KINDS: Record<ContentKind, ContentKindMeta> = {
     singular: 'mod',
     classId: 6,
     listPath: 'externs/mods/list.json',
-    expect: { gameVersion: '1.21.1', loader: 'NeoForge', side: 'Client' },
+    checks: { version: true, loader: true, side: true },
   },
   resourcepack: {
     id: 'resourcepack',
@@ -43,7 +45,7 @@ export const CONTENT_KINDS: Record<ContentKind, ContentKindMeta> = {
     singular: 'resource pack',
     classId: 12,
     listPath: 'externs/resource-packs/list.json',
-    expect: { gameVersion: '1.21.1' },
+    checks: { version: true, loader: false, side: false },
   },
   shaderpack: {
     id: 'shaderpack',
@@ -52,7 +54,7 @@ export const CONTENT_KINDS: Record<ContentKind, ContentKindMeta> = {
     singular: 'shader pack',
     classId: 6552,
     listPath: 'externs/shader-packs/list.json',
-    expect: { gameVersion: '1.21.1' },
+    checks: { version: true, loader: false, side: false },
   },
 }
 

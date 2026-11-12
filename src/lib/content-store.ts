@@ -23,8 +23,12 @@ class PackStore {
     const packs =
       (await this.#store.get<PackInfo[]>(CONTENT_KINDS[kind].folder)) ?? []
 
-    // Las entradas antiguas no traen `content`.
-    return packs.map((pack) => ({ ...pack, content: kind }))
+    // Las entradas antiguas no traen `content` ni `gameVersions`.
+    return packs.map((pack) => ({
+      ...pack,
+      content: kind,
+      gameVersions: pack.gameVersions ?? [],
+    }))
   }
 
   /** Reemplaza la lista de referencia de un tipo en una sola escritura. */

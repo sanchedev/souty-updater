@@ -3,11 +3,8 @@ import {
   IconDownload,
   IconExternalLink,
   IconFolderOff,
-  IconPalette,
-  IconPuzzle,
   IconRadar2,
   IconReload,
-  IconSparkles,
   IconTrash,
   type Icon,
 } from '@tabler/icons-react'
@@ -20,6 +17,7 @@ import {
   type ContentKind,
 } from '../../lib/content-kinds'
 import type { ItemStatus } from '../../lib/content-types'
+import { KIND_ICONS } from '../content-icons'
 import { PackItem } from '../pack-item'
 import { Alert } from '../common/alert'
 import { Button, type ButtonVariant } from '../common/button'
@@ -29,12 +27,6 @@ import { PixelProgress } from '../common/progress'
 import { Pill } from '../common/pill'
 import { ModRowSkeleton } from '../common/skeleton'
 import { Tabs, type TabItem } from '../common/tabs'
-
-const KIND_ICONS: Record<ContentKind, Icon> = {
-  mod: IconPuzzle,
-  resourcepack: IconPalette,
-  shaderpack: IconSparkles,
-}
 
 type StatusFilter = 'all' | ItemStatus
 

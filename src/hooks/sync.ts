@@ -11,6 +11,9 @@ import {
   packDownloadPage,
 } from '../lib/curseforge'
 import { isMissing, type ContentItem } from '../lib/content-types'
+import { notify } from '../lib/notify'
+import { useDiagnosticsStore } from '../stores/diagnostics'
+import { usePreferencesStore } from '../stores/preferences'
 import { toast } from '../stores/toasts'
 
 export interface SyncProgress {
@@ -43,12 +46,18 @@ export function useSync({
 
   const meta = CONTENT_KINDS[kind]
 
+  const targetVersion = usePreferencesStore((s) => s.targetVersion)
+  const targetLoader = usePreferencesStore((s) => s.targetLoader)
+  const notifyOnSync = usePreferencesStore((s) => s.notifyOnSync)
+
   /** Descarga el listado publicado y lo guarda como nueva referencia. */
   const refreshList = useCallback(async () => {
     setBusy(true)
     try {
-      const { packs, warnings } = await fetchPacks(kind)
+      const target = { version: targetVersion, loader: targetLoader }
+      const { packs, warnings } = await fetchPacks(kind, target)
       await packStore.replaceAll(kind, packs)
+      await useDiagnosticsStore.getState().recordRefresh(kind, warnings)
       toast.success(`Lista actualizada: ${packs.length} ${meta.label.toLowerCase()}.`)
 
       if (warnings.length > 0) {
@@ -63,7 +72,7 @@ export function useSync({
     } finally {
       setBusy(false)
     }
-  }, [kind, meta, onError])
+  }, [kind, meta, onError, targetVersion, targetLoader])
 
   /** Elimina los archivos de la carpeta que no están en la lista. */
   const removeExtras = useCallback(async () => {
@@ -109,12 +118,18 @@ export function useSync({
 
       if (removed > 0) {
         toast.success(`Se eliminaron ${removed} archivo(s) sobrante(s).`)
+        if (notifyOnSync) {
+          await notify(
+            'Souty Helper',
+            `Se eliminaron ${removed} archivo(s) sobrante(s) de ${meta.label.toLowerCase()}.`,
+          )
+        }
       }
     } finally {
       setProgress(null)
       setBusy(false)
     }
-  }, [dir, items, meta, reload, onError])
+  }, [dir, items, meta, reload, onError, notifyOnSync])
 
   /** Descarga todo lo faltante; lo sin URL directa se abre a mano. */
   const downloadMissing = useCallback(async () => {
@@ -175,6 +190,13 @@ export function useSync({
       } else {
         toast.warning(`Se descargaron ${ok} de ${installable.length} ${noun}.`)
       }
+
+      if (notifyOnSync) {
+        await notify(
+          'Souty Helper',
+          `Se descargaron ${ok} de ${installable.length} ${noun} faltantes.`,
+        )
+      }
     }
 
     if (
@@ -185,7 +207,7 @@ export function useSync({
     ) {
       await Promise.allSettled(manual.map((pack) => openUrl(packDownloadPage(pack))))
     }
-  }, [dir, items, meta, reload, onError])
+  }, [dir, items, meta, reload, onError, notifyOnSync])
 
   const openFolder = useCallback(
     () => (dir != null ? revealItemInDir(dir) : Promise.resolve()),
